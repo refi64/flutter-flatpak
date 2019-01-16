@@ -1,0 +1,54 @@
+app-id: io.flutter.Flutter
+runtime: org.freedesktop.Sdk
+runtime-version: 18.08
+sdk: org.freedesktop.Sdk
+command: flutter
+separate-locales: false
+finish-args:
+  - '--share=network'
+  - '--allow=multiarch'
+  - '--device=all'
+  - '--filesystem=host'
+  - '--filesystem=/var/lib/flatpak'
+  - '--filesystem=~/.var/app'
+  - '--talk-name=org.freedesktop.Flatpak'
+add-extensions:
+  org.freedesktop.Platform.Compat.i386:
+    directory: lib/i386-linux-gnu
+    version: 18.08
+  org.freedesktop.Platform.Compat.i386.Debug:
+    directory: lib/debug/lib/i386-linux-gnu
+    version: 18.08
+modules:
+  - name: compat
+    buildsystem: simple
+    build-commands:
+      - 'mkdir -p /app/lib/i386-linux-gnu /app/lib/debug/lib/i386-linux-gnu'
+  - name: flutter
+    buildsystem: simple
+    build-commands:
+      - 'cp -r flutter /app/flutter'
+      - 'install -Dm 755 start-flutter /app/bin/flutter'
+      - 'sed -i -f flutter-directories.sed /app/flutter/packages/flutter_tools/lib/src/context_runner.dart'
+      - >
+        cd /app/flutter/packages/flutter_tools &&
+        PUB_ENVIRONMENT=flutter_install PUB_CACHE=/app/flutter/.pub-cache
+        /app/flutter/bin/cache/dart-sdk/bin/pub upgrade --verbosity=error --offline;
+      - >
+        /app/flutter/bin/cache/dart-sdk/bin/dart
+        --snapshot=/app/flutter/bin/cache/flutter_tools.snapshot
+        --packages=/app/flutter/packages/flutter_tools/.packages
+        /app/flutter/packages/flutter_tools/bin/flutter_tools.dart
+      - 'mv /app/flutter/bin/cache{,-base}'
+      - 'mv /app/flutter/version{,-base}'
+      - 'ln -s /var/cache/flutter /app/flutter/bin/cache'
+      - 'ln -s /var/cache/flutter-version /app/flutter/version'
+    sources:
+      - type: archive
+        url: https://storage.googleapis.com/flutter_infra/releases/stable/linux/flutter_linux_v1.0.0-stable.tar.xz
+        sha256: 96e59dac54e427d4a6936d6ae98bda1b04a06a17a4323a95480f22fa19f9e2f4
+        dest: flutter
+      - type: file
+        path: flutter-directories.sed
+      - type: file
+        path: start-flutter

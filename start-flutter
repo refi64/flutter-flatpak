@@ -1,0 +1,26 @@
+#!/usr/bin/sh
+
+export PUB_CACHE="$XDG_CACHE_HOME/pub-cache"
+
+if [[ ! -f "$XDG_CACHE_HOME/flutter-version" ]] || \
+   ! cmp -s /app/flutter/version-base "$XDG_CACHE_HOME/flutter-version"; then
+  rm -rf "$XDG_CACHE_HOME/flutter" "$XDG_CACHE_HOME/flutter-version"
+  cp -r /app/flutter/bin/cache-base "$XDG_CACHE_HOME/flutter"
+  cp /app/flutter/version-base "$XDG_CACHE_HOME/flutter-version"
+fi
+
+flatpak-spawn --host flatpak info -l com.google.AndroidStudio \
+  2>/dev/null >"$XDG_CACHE_HOME/studio-location.new"
+
+current_studio_location=
+[[ -f /var/cache/studio-location ]] && \
+  current_studio_location=`cat "$XDG_CACHE_HOME/studio-location"`
+
+new_studio_location=`cat "$XDG_CACHE_HOME/studio-location.new"`
+
+if [[ "$current_studio_location" != "$new_studio_location" ]]; then
+  /app/flutter/bin/flutter config --android-studio-dir="$new_studio_location/files/extra"
+  mv "$XDG_CACHE_HOME"/studio-location{.new,}
+fi
+
+/app/flutter/bin/flutter "$@"
